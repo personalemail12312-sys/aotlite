@@ -568,7 +568,7 @@ local function resetWs()
     if character then
         local humanoid = character:FindFirstChild("Humanoid")
 
-        if humanoid and humanoid.Heath > 0 and humanoid.WalkSpeed > 0 then
+        if humanoid and humanoid.Health > 0 and humanoid.WalkSpeed > 0 then
             local snape = character:FindFirstChild("SNape")
 
             if snape then
