@@ -1,54 +1,9 @@
 local HttpService = game:GetService("HttpService")
 local PlaceId = game.PlaceId
 
-local function getUpdate()
-    local universeUrl = "https://apis.roblox.com/universes/v1/places/" .. PlaceId .. "/universe"
 
-    local success, response =
-        pcall(
-        function()
-            return game:HttpGet(universeUrl)
-        end
-    )
 
-    if success then
-        local data = HttpService:JSONDecode(response)
-
-        if data and data.universeId then
-            local universeId = data.universeId
-            local updateUrl = "https://games.roblox.com/v1/games?universeIds=" .. universeId
-
-            success, response =
-                pcall(
-                function()
-                    return game:HttpGet(updateUrl)
-                end
-            )
-
-            if success then
-                data = HttpService:JSONDecode(response)
-
-                if data and data.data and #data.data > 0 then
-                    local gameDetails = data.data[1] -- Lua tables are 1-indexed
-                    local updatedTime = gameDetails.updated
-                    return updatedTime
-                end
-            end
-        end
-    end
-
-    return nil
-end
-
-local currentUpdate = getUpdate()
-
-if not currentUpdate then
-    warn("[ATLAS] Failed to fetch game update info — continuing anyway")
-else
-    warn("[ATLAS] Game update detected: " .. tostring(currentUpdate))
-end
-
-local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/PorkDevMode/trump-client/main/Ui.luau"))()
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Esp = loadstring(game:HttpGet("https://raw.githubusercontent.com/PorkDevMode/trump-client/main/esp.luau"))()
 local Players = game:GetService("Players")
@@ -253,29 +208,22 @@ end
 
 local function resetHookTension()
     local Char = LocalPlayer.Character
-    if not Char then
-        return
-    end
-    local humanoid = Char:FindFirstChild("Humanoid")
-    if not humanoid then
-        return
-    end
-    local gear = humanoid:FindFirstChild("Gear")
-    if not gear then
-        return
-    end
-    local TensionR = gear:FindFirstChild("HookTensionR")
-    local TensionL = gear:FindFirstChild("HookTensionL")
+    if Char then
+        local humanoid = Char:FindFirstChild("Humanoid")
+        if humanoid then
+            local TensionR = Char:FindFirstChild("Humanoid"):FindFirstChild("Gear"):FindFirstChild("HookTensionR")
+            local TensionL = Char:FindFirstChild("Humanoid"):FindFirstChild("Gear"):FindFirstChild("HookTensionL")
 
-    if TensionR then
-        TensionR.Value = 0
-    end
+            if TensionR then
+                TensionR.Value = 0
+            end
 
-    if TensionL then
-        TensionL.Value = 0
+            if TensionL then
+                TensionL.Value = 0
+            end
+        end
     end
 end
- 
 
 local function displayStateAboveHead(player, state)
     local playerChar = player.Character
@@ -333,72 +281,70 @@ local function retrievePlayerStates()
     local LocalPlayer = players.LocalPlayer
 
     for _, player in pairs(players:GetPlayers()) do
-        local playerChar = player and player.Character
-        local playerHumanoid = playerChar and playerChar:FindFirstChild("Humanoid")
-        local localHumanoidRootPart = LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local playerChar = player.Character
+        local playerHumanoid = playerChar:FindFirstChild("Humanoid")
+        local localHumanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 
-        if not (playerChar and playerHumanoid and localHumanoidRootPart) then
-            goto continue
-        end
+        if playerChar and playerHumanoid and localHumanoidRootPart then
+            local playerHumanoidRootPart = playerChar:FindFirstChild("HumanoidRootPart")
+            local snape = playerChar:FindFirstChild("SNape")
+            if playerHumanoidRootPart and not snape then
+                local distance = (localHumanoidRootPart.Position - playerHumanoidRootPart.Position).Magnitude
+                if distance <= 1000 then
+                    local counterState = playerHumanoid:FindFirstChild("Counter")
+                    local kickState = playerHumanoid:FindFirstChild("KickAttacking")
+                    local bladeState = playerHumanoid:FindFirstChild("BladeAttacking")
 
-        local playerHumanoidRootPart = playerChar:FindFirstChild("HumanoidRootPart")
-        local snape = playerChar:FindFirstChild("SNape")
-        if playerHumanoidRootPart and not snape then
-            local distance = (localHumanoidRootPart.Position - playerHumanoidRootPart.Position).Magnitude
-            if distance <= 1000 then
-                local counterState = playerHumanoid:FindFirstChild("Counter")
-                local kickState = playerHumanoid:FindFirstChild("KickAttacking")
-                local bladeState = playerHumanoid:FindFirstChild("BladeAttacking")
+                    if counterState and kickState and bladeState then
+                        local counterValue = counterState.Value
+                        local kickValue = kickState.Value
+                        local bladeValue = bladeState.Value
 
-                if counterState and kickState and bladeState then
-                    local counterValue = counterState.Value
-                    local kickValue = kickState.Value
-                    local bladeValue = bladeState.Value
+                        local state
+                        if counterValue then
+                            state = "Countering"
+                        elseif kickValue then
+                            state = "Kicking"
+                        elseif bladeValue then
+                            state = "Blade"
+                        else
+                            state = "Default"
+                        end
 
-                    local state
-                    if counterValue then
-                        state = "Countering"
-                    elseif kickValue then
-                        state = "Kicking"
-                    elseif bladeValue then
-                        state = "Blade"
-                    else
-                        state = "Default"
-                    end
-
-                    if player.Team ~= LocalPlayer.Team then
+                        if player.Team == LocalPlayer.Team then
+                            return
+                        end
                         displayStateAboveHead(player, state)
                     end
                 end
-            end
-        elseif snape and playerHumanoidRootPart then
-            if player.Team ~= LocalPlayer.Team then
-                local Shifting = playerHumanoid and playerHumanoid:FindFirstChild("Shifting")
-                if Shifting then
-                    local blocking = Shifting.Blocking
-                    local heavying = Shifting.HeavyAttack
-                    local roaring = Shifting.Roar
-                    local stunned = Shifting.Roar
-
-                    local state
-
-                    if blocking then
-                        state = "TitanBlocking"
-                    elseif heavying then
-                        state = "TitanHeavying"
-                    elseif roaring then
-                        state = "TitanRoaring"
-                    elseif stunned then
-                        state = "TitanStunned"
-                    else
-                        state = "Default"
-                    end
-
-                    displayStateAboveHead(player, state)
+            elseif snape and playerHumanoidRootPart then
+                if player.Team == LocalPlayer.Team then
+                    return
                 end
+                local Shifting = playerHumanoid.Shifting
+
+                local blocking = Shifting.Blocking
+                local heavying = Shifting.HeavyAttack
+                local roaring = Shifting.Roar
+                local stunned = Shifting.Roar
+
+                local state
+
+                if blocking then
+                    state = "TitanBlocking"
+                elseif heavying then
+                    state = "TitanHeavying"
+                elseif roaring then
+                    state = "TitanRoaring"
+                elseif stunned then
+                    state = "TitanStunned"
+                else
+                    state = "Default"
+                end
+
+                displayStateAboveHead(player, state)
             end
         end
-        ::continue::
     end
 end
 
@@ -419,39 +365,24 @@ end
 -- Function to make you invincible against titans and fire, Does not work against shifters / humans.
 local function enableGodMode(bool)
     local char = LocalPlayer.Character
-    if not char then
-        return
-    end
     local humanoid = char:FindFirstChild("Humanoid")
-    if not humanoid or humanoid.Health <= 0 then
-        return
-    end
     local gear = humanoid:FindFirstChild("Gear")
-    if not gear then
-        return
-    end
-    local GodMode = humanoid:FindFirstChild("God")
-    if GodMode then
-        GodMode.Value = bool
+    if char and humanoid.Health > 0 and gear then
+        local GodMode = char:FindFirstChild("Humanoid"):FindFirstChild("Invincible")
+
+        if GodMode then
+            GodMode.Value = bool
+        end
     end
 end
 
 local function refillGas()
     local char = LocalPlayer.Character
-    if not char then
-        return
-    end
-    local humanoid = char:FindFirstChild("Humanoid")
-    if not humanoid then
-        return
-    end
-    local gear = humanoid:FindFirstChild("Gear")
-    if not gear then
-        return
-    end
-    local gas = gear:FindFirstChild("Gas")
-    if gas and gas.Value ~= 2000 then
-        gas.Value = 2000
+    if char and char:FindFirstChild("Humanoid") and char.Humanoid:FindFirstChild("Gear") then
+        local gear = char.Humanoid.Gear
+        if gear.Gas.Value ~= 2000 then
+            gear.Gas.Value = 2000
+        end
     end
 end
 
@@ -490,53 +421,44 @@ local function executeAspy()
         game:HttpGet("https://raw.githubusercontent.com/PorkDevMode/AnimationSpy/main/AnimationLogger.luau", true)
     )()
 end
+
 local function enableSkills()
     local char = LocalPlayer.Character
-    if not char then
-        return
-    end
-    local humanoid = char:FindFirstChild("Humanoid")
-    if not humanoid then
-        return
-    end
-    local gear = humanoid:FindFirstChild("Gear")
-    if gear then
-        local skills = gear:FindFirstChild("Skills")
-        if skills then
-            for _, skill in pairs(skills:GetChildren()) do
-                pcall(function()
+    if char then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            local gear = humanoid:FindFirstChild("Gear")
+            if gear then
+                for _, skill in pairs(gear.Skills:GetChildren()) do
                     skill.Value = true
-                end)
-            end
-        end
-    end
+                end
 
-    local gui = LocalPlayer:FindFirstChild("PlayerGui")
-    if gui and gui:FindFirstChild("SkillsGui") then
-        local sgui = gui.SkillsGui
-        local names = {"BladeThrow", "Counter", "Dodge", "Impulse", "SuperJump", "HandCut", "HandCutMk2"}
-        for _, n in ipairs(names) do
-            if sgui:FindFirstChild(n) then
-                pcall(function()
-                    sgui[n].Enabled = true
-                end)
-            end
-        end
+                local gui = LocalPlayer:FindFirstChild("PlayerGui")
+                if gui then
+                    gui.SkillsGui.Enabled = true
+                    gui.SkillsGui.BladeThrow.Enabled = true
+                    gui.SkillsGui.Counter.Enabled = true
+                    gui.SkillsGui.Dodge.Enabled = true
+                    gui.SkillsGui.Impulse.Enabled = true
+                    gui.SkillsGui.SuperJump.Enabled = true
+                    gui.SkillsGui.HandCut.Enabled = true
+                    gui.SkillsGui.HandCutMk2.Enabled = true
 
-        for _, v in pairs(sgui:GetChildren()) do
-            if v and v.Enabled == true then
-                print(v.Name .. " is enabled.")
-            elseif v then
-                print(v.Name .. " is not enabled.")
+                    for _, v in pairs(gui.SkillsGui:GetChildren()) do
+                        if v.Enabled == true then
+                            print(v.Name .. " is enabled.")
+                        end
+                        if v.enabled ~= true then
+                            print(v.Name .. " is not enabled.")
+                        end
+                    end
+                end
             end
         end
     end
 end
 
 local function retrieveShifterScript(Char)
-    if not Char then
-        return nil
-    end
     local PossibleNames = {"FELocal", "ATLocal", "JALocal", "ARLocal", "BELocal", "CALocal", "COLocal"}
 
     for _, Name in ipairs(PossibleNames) do
@@ -601,7 +523,7 @@ local function resetWs()
     if character then
         local humanoid = character:FindFirstChild("Humanoid")
 
-        if humanoid and humanoid.Health > 0 and humanoid.WalkSpeed > 0 then
+        if humanoid and humanoid.Heath > 0 and humanoid.WalkSpeed > 0 then
             local snape = character:FindFirstChild("SNape")
 
             if snape then
@@ -635,40 +557,25 @@ local function reloadBlades()
         local gear = LocalPlayer.Character:FindFirstChild("Gear")
 
         if gear then
-            local events = gear:FindFirstChild("Events")
-            if events then
-                local bladeReload = events:FindFirstChild("BladeReload")
-                if bladeReload and bladeReload.FireServer then
-                    pcall(function()
-                        bladeReload:FireServer()
-                    end)
-                end
-            end
+            gear.Events.BladeReload:FireServer()
         end
     end
 end
 
 local function noForceShiftStun()
     local character = LocalPlayer.Character
-    if not character then
-        return
-    end
     local humanoid = character:FindFirstChild("Humanoid")
-    if not humanoid then
-        return
-    end
 
-    local shifter = retrieveShifterScript(character)
-    if not shifter then
-        return
-    end
-    local stats = shifter:FindFirstChild("Stats")
-    if not stats then
-        return
-    end
-    local forced = stats:FindFirstChild("ForceShifted")
-    if forced and forced.Value == true then
-        forced.Value = false
+    if character and humanoid then
+        local shifter = retrieveShifterScript(character)
+
+        if shifter then
+            local forced = shifter.Stats.ForceShifted
+
+            if forced.Value == true then
+                forced.Value = false
+            end
+        end
     end
 end
 
@@ -688,53 +595,23 @@ end
 
 local function playAnimation(AnimID, speed)
     local char = LocalPlayer.Character
-    if not char then
-        return
-    end
     local humanoid = char:FindFirstChild("Humanoid")
-    if not humanoid then
-        return
-    end
 
     local animation = Instance.new("Animation")
-    animation.AnimationId = "rbxassetid://" .. tostring(AnimID)
+    animation.AnimationId = "rbxassetid://" .. AnimID
 
-    local ok, animationTrack = pcall(function()
-        return humanoid:LoadAnimation(animation)
-    end)
-    if not ok or not animationTrack then
-        return
-    end
+    local animationTrack = humanoid:LoadAnimation(animation)
 
     if speed then
-        pcall(function()
-            animationTrack:AdjustSpeed(speed)
-        end)
+        animationTrack:AdjustSpeed(speed)
     end
 
-    pcall(function()
-        animationTrack:Play()
-    end)
+    animationTrack:Play()
 end
 
 local function restoreBlades()
-    local char = LocalPlayer.Character
-    if not char then
-        return
-    end
-    local humanoid = char:FindFirstChild("Humanoid")
-    if not humanoid then
-        return
-    end
-    local gear = humanoid:FindFirstChild("Gear")
-    if not gear then
-        return
-    end
-    local blades = gear:FindFirstChild("Blades")
-    if blades then
-        pcall(function()
-            blades.Value = 8
-        end)
+    if LocalPlayer.Character then
+        LocalPlayer.Character.Humanoid.Gear.Blades.Value = 8
     end
 end
 
@@ -801,7 +678,7 @@ local function UpdatePlayerLists()
             local shifterHolder = player.Character:FindFirstChild("ShifterHolder")
             local name = player.Name
             if shifterHolder then
-                table.insert(TempWarriorList, shifterHolder.Value .. "Titan")
+                TempWarriorList.name = shifterHolder.Value .. "Titan"
             else
                 table.insert(TempSoldierList, name)
             end
@@ -1839,19 +1716,15 @@ end
 local function updateTargets()
     targets = {}
     for _, player in pairs(Players:GetPlayers()) do
-        local char = player.Character
-        if char then
-            local snape = char:FindFirstChild("SNape")
-            local humanoid = char:FindFirstChild("Humanoid")
-            local dead = humanoid and humanoid:FindFirstChild("Dead")
-            if
-                player ~= LocalPlayer and char:FindFirstChild("HumanoidRootPart") and
-                    not snape and
-                    not (dead and dead.Value) and
-                    player.Team ~= LocalPlayer.Team
-             then
-                table.insert(targets, player)
-            end
+        local snape = player.Character:FindFirstChild("SNape")
+        local dead = player.Character.Humanoid:FindFirstChild("Dead")
+        if
+            player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and
+                not snape and
+                not (dead and dead.Value) and
+                player.Team ~= LocalPlayer.Team
+         then
+            table.insert(targets, player)
         end
     end
 end
