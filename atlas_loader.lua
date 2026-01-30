@@ -40,12 +40,12 @@ local function getUpdate()
     return nil
 end
 
-local scriptUpdate = "2024-07-19T21:28:52.863Z"
 local currentUpdate = getUpdate()
 
-if currentUpdate ~= scriptUpdate then
-    print("Current Update Is " .. currentUpdate)
-    error("New update. Wait for a new one in the discord. https://discord.gg/aSUewbrN")
+if not currentUpdate then
+    warn("[ATLAS] Failed to fetch game update info — continuing anyway")
+else
+    warn("[ATLAS] Game update detected: " .. tostring(currentUpdate))
 end
 
 local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/PorkDevMode/trump-client/main/Ui.luau"))()
